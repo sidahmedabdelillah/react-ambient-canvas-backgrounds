@@ -69,7 +69,6 @@ const PipeLine = ({
 
   useEffect(() => {
     if (!canvasARef.current || !canvasBRef.current) {
-      console.log('returned here')
       return
     }
 
@@ -77,7 +76,6 @@ const PipeLine = ({
     const contexB = canvasBRef.current.getContext('2d')
 
     if (!contexB || !contexA) {
-      console.log('returned here')
       return
     }
 
@@ -239,7 +237,6 @@ function updatePipes(
   turnChanceRange: number,
   turnAmount: number
 ) {
-  // console.log(pipesTick)
 
   for (let i = 0; i < pipePropsLength; i += pipePropCount) {
     updatePipe(
