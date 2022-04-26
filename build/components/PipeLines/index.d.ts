@@ -1,1 +1,1 @@
-export { default } from "./PipeLines";
+export { default, PipeLinesRef, PipeLineProps } from "./PipeLines";
