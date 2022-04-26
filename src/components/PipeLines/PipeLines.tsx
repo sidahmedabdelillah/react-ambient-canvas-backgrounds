@@ -1,5 +1,12 @@
 import { useWindowSize } from '@react-hook/window-size'
-import React, { useEffect, useRef, useState } from 'react'
+import React, {
+  Ref,
+  RefObject,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 
 const { PI, cos, sin, abs, round, random } = Math
 const HALF_PI = 0.5 * PI
@@ -16,89 +23,157 @@ const pipePropCount = 8
 let pipesTick = 0
 
 export interface PipeLineProps {
+  /** Number of pipes */
   pipeCount?: number
+  /** Possible direction of turns 4 is Up,Down,Left,Rigth and do the math on that */
   turnCount?: number
+  /** The chance of a pipe turning the higher the more swiggely it gets */
   turnChanceRange?: number
+  /** The initial speed of the pipe */
   baseSpeed?: number
+  /** How extra speed can it get */
   rangeSpeed?: number
+  /** Base life span of a pipe */
   baseTTL?: number
+  /** How much extra life can a pipe get */
   rangeTTL?: number
+  /** The initial width of a pipe */
   baseWidth?: number
+  /** How much extra width can it get */
   rangeWidth?: number
+  /** The initial Hue of the pipes */
   baseHue?: number
+  /** The maximum amount that could be added to the base hue value  */
   rangeHue?: number
+  /** Animation backgroud color */
   backgroundColor?: string
+  /** Class name for the container */
   containerClass?: string
 }
 
-const PipeLine = ({
-  pipeCount = 30,
-  turnCount = 8,
-  turnChanceRange = 70,
-  baseSpeed = 0.5,
-  rangeSpeed = 1,
-  baseTTL = 100,
-  rangeTTL = 300,
-  baseWidth = 2,
-  rangeWidth = 4,
-  baseHue = 180,
-  rangeHue = 60,
-  backgroundColor = 'hsla(150,80%,1%,1)',
-  containerClass="",
-}: PipeLineProps) => {
-  const canvasARef = useRef<HTMLCanvasElement>(null)
-  const canvasBRef = useRef<HTMLCanvasElement>(null)
+export interface PipeLinesRef {
+  rerender: () => void
+}
 
-  const [windowWidth, windowHeight] = useWindowSize()
+const PipeLine = React.forwardRef(
+  (
+    {
+      pipeCount = 30,
+      turnCount = 8,
+      turnChanceRange = 70,
+      baseSpeed = 0.5,
+      rangeSpeed = 1,
+      baseTTL = 100,
+      rangeTTL = 300,
+      baseWidth = 2,
+      rangeWidth = 4,
+      baseHue = 180,
+      rangeHue = 60,
+      backgroundColor = 'hsla(150,80%,1%,1)',
+      containerClass = '',
+    }: PipeLineProps,
+    ref: Ref<PipeLinesRef>
+  ) => {
+    const canvasARef = useRef<HTMLCanvasElement>(null)
+    const canvasBRef = useRef<HTMLCanvasElement>(null)
 
-  const [pipePropsLength, setPipePropsLength] = useState(
-    pipeCount * pipePropCount
-  )
-  const [turnAmount, setTurnAmount] = useState((360 / turnCount) * TO_RAD)
+    const [windowWidth, windowHeight] = useWindowSize()
 
-  const [center] = useState<number[]>([])
-  const [pipeProps] = useState(new Float32Array(pipePropsLength))
+    const [pipePropsLength, setPipePropsLength] = useState(
+      pipeCount * pipePropCount
+    )
+    const [turnAmount, setTurnAmount] = useState((360 / turnCount) * TO_RAD)
 
-  useEffect(() => {
-    setTurnAmount((360 / turnCount) * TO_RAD)
-  }, [turnCount])
+    const [center] = useState<number[]>([])
+    const [pipeProps, setPipeProps] = useState(
+      new Float32Array(pipePropsLength)
+    )
 
-  useEffect(() => {
-    setPipePropsLength(pipeCount * pipePropCount)
-  }, [pipeCount])
+    useImperativeHandle(ref, () => ({ rerender }))
 
-  useEffect(() => {
-    if (!canvasARef.current || !canvasBRef.current) {
-      return
+    const rerender = () => {
+      setPipeProps(new Float32Array(pipePropsLength))
+      if (canvasARef.current) {
+        const context = canvasARef.current.getContext('2d')
+        if (context) {
+          context.clearRect(
+            0,
+            0,
+            canvasARef.current.width,
+            canvasARef.current.height
+          )
+        }
+      }
+      if (canvasBRef.current) {
+        const context = canvasBRef.current.getContext('2d')
+        if (context) {
+          context.clearRect(
+            0,
+            0,
+            canvasBRef.current.width,
+            canvasBRef.current.height
+          )
+        }
+      }
     }
 
-    const contexA = canvasARef.current.getContext('2d')
-    const contexB = canvasBRef.current.getContext('2d')
-
-    if (!contexB || !contexA) {
-      return
+    const resize = () => {
+      if (!canvasARef.current || !canvasBRef.current) {
+        return
+      }
+      resize()
     }
 
-    canvasARef.current.width = windowWidth
-    canvasARef.current.height = windowHeight
+    useEffect(rerender, [backgroundColor, pipePropsLength])
 
-    contexA.drawImage(canvasBRef.current, 0, 0)
+    useEffect(() => {
+      setTurnAmount((360 / turnCount) * TO_RAD)
+    }, [turnCount])
 
-    canvasBRef.current.width = windowWidth
-    canvasBRef.current.height = windowHeight
+    useEffect(() => {
+      setPipePropsLength(pipeCount * pipePropCount)
+      setPipeProps(new Float32Array(pipeCount * pipePropCount))
+    }, [pipeCount])
 
-    contexB.drawImage(canvasARef.current, 0, 0)
+    useEffect(() => {
+      if (!canvasARef.current || !canvasBRef.current) {
+        return
+      }
 
-    center[0] = 0.5 * canvasARef.current.width
+      const contexA = canvasARef.current.getContext('2d')
+      const contexB = canvasBRef.current.getContext('2d')
 
-    center[1] = 0.5 * canvasARef.current.height
+      if (!contexB || !contexA) {
+        return
+      }
 
-    for (let i = 0; i < pipePropsLength; i += pipePropCount) {
-      initPipe(
+      resize()
+
+      for (let i = 0; i < pipePropsLength; i += pipePropCount) {
+        initPipe(
+          canvasARef.current,
+          pipeProps,
+          center,
+          i,
+          baseSpeed,
+          rangeSpeed,
+          baseTTL,
+          rangeTTL,
+          baseWidth,
+          rangeWidth,
+          baseHue,
+          rangeHue
+        )
+      }
+
+      draw(
+        contexA,
+        contexB,
         canvasARef.current,
+        canvasBRef.current,
         pipeProps,
         center,
-        i,
+        pipePropsLength,
         baseSpeed,
         rangeSpeed,
         baseTTL,
@@ -106,90 +181,72 @@ const PipeLine = ({
         baseWidth,
         rangeWidth,
         baseHue,
-        rangeHue
+        rangeHue,
+        turnChanceRange,
+        turnAmount,
+        backgroundColor
       )
-    }
-
-    draw(
-      contexA,
-      contexB,
-      canvasARef.current,
-      canvasBRef.current,
-      pipeProps,
+    }, [
+      backgroundColor,
+      baseHue,
+      baseSpeed,
+      baseTTL,
+      baseWidth,
       center,
       pipePropsLength,
-      baseSpeed,
-      rangeSpeed,
-      baseTTL,
-      rangeTTL,
-      baseWidth,
-      rangeWidth,
-      baseHue,
       rangeHue,
-      turnChanceRange,
+      rangeSpeed,
+      rangeTTL,
+      rangeWidth,
       turnAmount,
-      backgroundColor
+      turnChanceRange,
+      windowHeight,
+      windowWidth,
+    ])
+
+    useEffect(() => {
+      if (!canvasARef.current || !canvasBRef.current) {
+        return
+      }
+      const contextA = canvasARef.current.getContext('2d')
+      const contextB = canvasBRef.current.getContext('2d')
+
+      if (!contextA || !contextB) {
+        return
+      }
+
+      canvasARef.current.width = windowWidth
+      canvasARef.current.height = windowHeight
+
+      contextA.drawImage(canvasBRef.current, 0, 0)
+
+      canvasBRef.current.width = windowWidth
+      canvasBRef.current.height = windowHeight
+
+      contextB.drawImage(canvasARef.current, 0, 0)
+
+      center[0] = 0.5 * canvasARef.current.width
+
+      center[1] = 0.5 * canvasARef.current.height
+    }, [windowWidth, windowHeight])
+
+    return (
+      <div className={containerClass}>
+        <canvas ref={canvasARef} />
+        <canvas
+          ref={canvasBRef}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </div>
     )
-  }, [
-    backgroundColor,
-    baseHue,
-    baseSpeed,
-    baseTTL,
-    baseWidth,
-    center,
-    pipePropsLength,
-    rangeHue,
-    rangeSpeed,
-    rangeTTL,
-    rangeWidth,
-    turnAmount,
-    turnChanceRange,
-    windowHeight,
-    windowWidth,
-  ])
-
-  useEffect(() => {
-    if (!canvasARef.current || !canvasBRef.current) {
-      return
-    }
-    const contextA = canvasARef.current.getContext('2d')
-    const contextB = canvasBRef.current.getContext('2d')
-
-    if (!contextA || !contextB) {
-      return
-    }
-
-    canvasARef.current.width = windowWidth
-    canvasARef.current.height = windowHeight
-
-    contextA.drawImage(canvasBRef.current, 0, 0)
-
-    canvasBRef.current.width = windowWidth
-    canvasBRef.current.height = windowHeight
-
-    contextB.drawImage(canvasARef.current, 0, 0)
-
-    center[0] = 0.5 * canvasARef.current.width
-
-    center[1] = 0.5 * canvasARef.current.height
-  }, [windowWidth, windowHeight])
-
-  return (
-    <div className={containerClass}     data-testid="pipe-lines-test">
-      <canvas ref={canvasARef} />
-      <canvas
-        ref={canvasBRef}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-        }}
-      />
-    </div>
-  )
-}
+  }
+)
 export default PipeLine
 
 // functions
@@ -237,6 +294,7 @@ function updatePipes(
   turnChanceRange: number,
   turnAmount: number
 ) {
+  // console.log(pipesTick)
 
   for (let i = 0; i < pipePropsLength; i += pipePropCount) {
     updatePipe(
@@ -437,5 +495,3 @@ function draw(
     )
   )
 }
-
-

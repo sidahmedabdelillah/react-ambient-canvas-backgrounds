@@ -13,7 +13,7 @@
   "types": "build/index.d.ts",
   "scripts": {
     "rollup": "rollup -c",
-    "tsc": "tsc ",
+    "tsc": "tsc",
     "test": "jest",
     "test:watch": "jest --watch"
   },
