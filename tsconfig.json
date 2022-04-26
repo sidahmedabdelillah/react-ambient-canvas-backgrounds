@@ -9,9 +9,9 @@
     "jsx": "react",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "outDir" :"build" 
   },
-  "outDir" :"build" ,
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
