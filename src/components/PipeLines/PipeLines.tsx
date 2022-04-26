@@ -121,7 +121,29 @@ const PipeLine = React.forwardRef(
       if (!canvasARef.current || !canvasBRef.current) {
         return
       }
-      resize()
+      if (!canvasARef.current || !canvasBRef.current) {
+        return
+      }
+      const contextA = canvasARef.current.getContext('2d')
+      const contextB = canvasBRef.current.getContext('2d')
+
+      if (!contextA || !contextB) {
+        return
+      }
+
+      canvasARef.current.width = windowWidth
+      canvasARef.current.height = windowHeight
+
+      contextA.drawImage(canvasBRef.current, 0, 0)
+
+      canvasBRef.current.width = windowWidth
+      canvasBRef.current.height = windowHeight
+
+      contextB.drawImage(canvasARef.current, 0, 0)
+
+      center[0] = 0.5 * canvasARef.current.width
+
+      center[1] = 0.5 * canvasARef.current.height
     }
 
     useEffect(rerender, [backgroundColor, pipePropsLength])
@@ -205,29 +227,7 @@ const PipeLine = React.forwardRef(
     ])
 
     useEffect(() => {
-      if (!canvasARef.current || !canvasBRef.current) {
-        return
-      }
-      const contextA = canvasARef.current.getContext('2d')
-      const contextB = canvasBRef.current.getContext('2d')
-
-      if (!contextA || !contextB) {
-        return
-      }
-
-      canvasARef.current.width = windowWidth
-      canvasARef.current.height = windowHeight
-
-      contextA.drawImage(canvasBRef.current, 0, 0)
-
-      canvasBRef.current.width = windowWidth
-      canvasBRef.current.height = windowHeight
-
-      contextB.drawImage(canvasARef.current, 0, 0)
-
-      center[0] = 0.5 * canvasARef.current.width
-
-      center[1] = 0.5 * canvasARef.current.height
+      resize()
     }, [windowWidth, windowHeight])
 
     return (
