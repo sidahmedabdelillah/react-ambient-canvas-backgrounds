@@ -3,7 +3,7 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Ambiante Canvas Backgrouds ported to react",
   "main": "build/index.js",
   "files": [
