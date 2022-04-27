@@ -1,6 +1,6 @@
 # react-ambient-canvas-backgrounds
 
-[![npm](https://img.shields.io/npm/v/react-dropzone.svg?style=flat-square)](https://www.npmjs.com/package/react-ambient-canvas-backgrounds)
+[![npm](https://img.shields.io/npm/v/react-ambient-canvas-backgrounds?style=flat-square)](https://www.npmjs.com/package/react-ambient-canvas-backgrounds)
 
 React animated background fully customisable with props for unique look and feel
  
@@ -13,7 +13,7 @@ or:
 yarn add react-ambient-canvas-backgrounds
 ```
 ## PlayGround
-
+[Playground](https://reac-swirl-animation.vercel.app/)
 
 ## Usage
 
