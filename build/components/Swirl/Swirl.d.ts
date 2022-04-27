@@ -15,6 +15,7 @@ export interface SwirlPropTypes {
     yOff?: number;
     zOff?: number;
     backgroundColor?: 'hsla(260,40%,5%,1)';
+    loop?: boolean;
 }
-declare const Swirl: ({ particleCount, rangeY, baseTTL, rangeTTL, baseSpeed, rangeSpeed, baseRadius, rangeRadius, baseHue, rangeHue, noiseSteps, xOff, yOff, zOff, backgroundColor, }: SwirlPropTypes) => JSX.Element;
+declare const Swirl: ({ particleCount, rangeY, baseTTL, rangeTTL, baseSpeed, rangeSpeed, baseRadius, rangeRadius, baseHue, rangeHue, noiseSteps, xOff, yOff, zOff, backgroundColor, loop, }: SwirlPropTypes) => JSX.Element;
 export default Swirl;
