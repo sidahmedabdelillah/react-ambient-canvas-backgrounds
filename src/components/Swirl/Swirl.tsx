@@ -19,9 +19,10 @@ export interface SwirlPropTypes {
   yOff?: number
   zOff?: number
   backgroundColor?: 'hsla(260,40%,5%,1)'
+  loop?: boolean
 }
 
-const particlePropCount = 9;
+const particlePropCount = 9
 
 const Swirl = ({
   particleCount = 700,
@@ -39,14 +40,14 @@ const Swirl = ({
   yOff = 0.00125,
   zOff = 0.0005,
   backgroundColor = 'hsla(260,40%,5%,1)',
+  loop = false,
 }: SwirlPropTypes) => {
   const canvasARef = useRef<HTMLCanvasElement>(null)
   const canvasBRef = useRef<HTMLCanvasElement>(null)
   const [windowWidth, windowHeight] = useWindowSize()
 
   const [center] = useState<number[]>([])
-  const [tick, setTick] = useState(0)
-  const [simplex] = useState(new SimplexNoise())
+  const simplexRef = useRef(new SimplexNoise())
   const [particlePropsLength, setParticlePropsLength] = useState(
     particleCount * particlePropCount
   )
@@ -54,22 +55,140 @@ const Swirl = ({
     new Float32Array(particlePropsLength)
   )
 
+  const rangeYRef = useRef(rangeY)
+  const particlePropsRef = useRef(particleProps)
+  const baseHueRef = useRef(baseHue)
+  const rangeHueRef = useRef(rangeHue)
+  const baseRadiusRef = useRef(baseRadius)
+  const rangeRadiusRef = useRef(rangeRadius)
+  const xOffRef = useRef(xOff)
+  const yOffRef = useRef(yOff)
+  const zOffRef = useRef(zOff)
+  const tickRef = useRef(1)
+
+  // animation frame ref
+  const animationFrameRef = useRef(0)
+
   useEffect(() => {
     setParticlePropsLength(particleCount * particlePropCount)
     setParticleProps(new Float32Array(particlePropsLength))
-  }, [particleCount, particlePropCount])
+    particlePropsRef.current = new Float32Array(particlePropsLength)
 
-  useEffect(() => {
     if (!canvasARef.current || !canvasBRef.current) {
-      console.log('returned here')
       return
     }
-    for (let i = 0; i < particlePropsLength; i += particlePropCount) {
-      initParticle(
+  }, [
+    baseHue,
+    baseRadius,
+    baseSpeed,
+    baseTTL,
+    center,
+    particleCount,
+    particlePropsLength,
+    rangeHue,
+    rangeRadius,
+    rangeSpeed,
+    rangeTTL,
+    rangeY,
+  ])
+
+  useEffect(() => {
+    rangeYRef.current = rangeY
+  }, [rangeY])
+
+  useEffect(() => {
+    baseHueRef.current = baseHue
+  }, [baseHue])
+
+  useEffect(() => {
+    rangeHueRef.current = rangeHue
+  }, [rangeHue])
+
+  useEffect(() => {
+    baseRadiusRef.current = baseRadius
+  }, [baseRadius])
+
+  useEffect(() => {
+    rangeRadiusRef.current = rangeRadius
+  }, [rangeRadius])
+
+  useEffect(() => {
+    function draw(
+      canvasARef: RefObject<HTMLCanvasElement>,
+      canvasBRef: RefObject<HTMLCanvasElement>,
+      particleProps: RefObject<Float32Array>,
+      center: number[],
+      simplex: RefObject<SimplexNoise>,
+      tick: RefObject<number>,
+      backgroundColor: string,
+      particlePropsLength: number,
+      particlePropCount: number,
+      xOff: RefObject<number>,
+      yOff: RefObject<number>,
+      zOff: RefObject<number>,
+      noiseSteps: number,
+      rangeY: RefObject<number>,
+      baseTTL: number,
+      rangeTTL: number,
+      baseSpeed: number,
+      rangeSpeed: number,
+      baseRadius: RefObject<number>,
+      rangeRadius: RefObject<number>,
+      baseHue: RefObject<number>,
+      rangeHue: RefObject<number>
+    ) {
+      if (loop) {
+        tickRef.current = tickRef.current + 1
+      }
+      if (
+        !canvasARef.current ||
+        !canvasBRef.current ||
+        !baseHue.current ||
+        !rangeHue.current ||
+        !baseRadius.current ||
+        !rangeRadius.current ||
+        !simplex.current ||
+        !tick.current
+      ) {
+        console.log('returned ')
+        return
+      }
+
+      const contextA = canvasARef.current.getContext('2d')
+      const contextB = canvasBRef.current.getContext('2d')
+
+      if (!contextA || !contextB) {
+        return
+      }
+
+      contextA.clearRect(
+        0,
+        0,
+        canvasARef.current.width,
+        canvasARef.current.height
+      )
+
+      contextB.fillStyle = backgroundColor
+      contextB.fillRect(
+        0,
+        0,
+        canvasARef.current.width,
+        canvasARef.current.height
+      )
+
+      drawParticles(
         canvasARef.current,
+        contextA,
         particleProps,
         center,
-        i,
+        simplex,
+        tick,
+        particlePropsLength,
+        particlePropCount,
+        xOff,
+        yOff,
+        zOff,
+        noiseSteps,
         rangeY,
         baseTTL,
         rangeTTL,
@@ -80,6 +199,63 @@ const Swirl = ({
         baseHue,
         rangeHue
       )
+      renderGlow(canvasARef.current, contextB)
+      renderToScreen(canvasARef.current, contextB)
+
+      animationFrameRef.current = window.requestAnimationFrame(
+        () =>
+      draw(
+        canvasARef,
+        canvasBRef,
+        particleProps,
+        center,
+        simplex,
+        tick,
+        backgroundColor,
+        particlePropsLength,
+        particlePropCount,
+        xOff,
+        yOff,
+        zOff,
+        noiseSteps,
+        rangeY,
+        baseTTL,
+        rangeTTL,
+        baseSpeed,
+        rangeSpeed,
+        baseRadius,
+        rangeRadius,
+        baseHue,
+        rangeHue
+      )
+      )
+    }
+    cancelAnimationFrame(animationFrameRef.current)
+
+    if (!canvasARef.current || !canvasBRef.current) {
+      console.log('returned here')
+      return
+    }
+    for (
+      let i = 0;
+      i < particlePropsRef.current.length;
+      i += particlePropCount
+    ) {
+      initParticle(
+        canvasARef.current,
+        particlePropsRef,
+        center,
+        i,
+        rangeYRef,
+        baseTTL,
+        rangeTTL,
+        baseSpeed,
+        rangeSpeed,
+        baseRadiusRef,
+        rangeRadiusRef,
+        baseHueRef,
+        rangeHueRef
+      )
     }
 
     if (!canvasARef.current || !canvasBRef.current) {
@@ -89,29 +265,30 @@ const Swirl = ({
     draw(
       canvasARef,
       canvasBRef,
-      particleProps,
+      particlePropsRef,
       center,
-      simplex,
-      tick,
+      simplexRef,
+      tickRef,
       backgroundColor,
       particlePropsLength,
       particlePropCount,
-      xOff,
-      yOff,
-      zOff,
+      xOffRef,
+      yOffRef,
+      zOffRef,
       noiseSteps,
-      rangeY,
+      rangeYRef,
       baseTTL,
       rangeTTL,
       baseSpeed,
       rangeSpeed,
-      baseRadius,
-      rangeRadius,
-      baseHue,
-      rangeHue
+      baseRadiusRef,
+      rangeRadiusRef,
+      baseHueRef,
+      rangeHueRef
     )
-    setTick(tick => tick + 1)
-  }, [])
+
+    return () => cancelAnimationFrame(animationFrameRef.current)
+  }, [loop])
 
   useEffect(() => {
     if (!canvasARef.current || !canvasBRef.current) {
@@ -157,154 +334,69 @@ const Swirl = ({
 
 export default Swirl
 
-function draw(
-  canvasARef: RefObject<HTMLCanvasElement>,
-  canvasBRef: RefObject<HTMLCanvasElement>,
-  particleProps: Float32Array,
-  center: number[],
-  simplex: SimplexNoise,
-  tick: number,
-  backgroundColor: string,
-  particlePropsLength: number,
-  particlePropCount: number,
-  xOff: number,
-  yOff: number,
-  zOff: number,
-  noiseSteps: number,
-  rangeY: number,
-  baseTTL: number,
-  rangeTTL: number,
-  baseSpeed: number,
-  rangeSpeed: number,
-  baseRadius: number,
-  rangeRadius: number,
-  baseHue: number,
-  rangeHue: number
-) {
-  if (!canvasARef.current || !canvasBRef.current) {
-    return
-  }
-
-  const contextA = canvasARef.current.getContext('2d')
-  const contextB = canvasBRef.current.getContext('2d')
-
-  if (!contextA || !contextB) {
-    return
-  }
-
-  contextA.clearRect(0, 0, canvasARef.current.width, canvasARef.current.height)
-
-  contextB.fillStyle = backgroundColor
-  contextB.fillRect(0, 0, canvasARef.current.width, canvasARef.current.height)
-
-  drawParticles(
-    canvasARef.current,
-    contextA,
-    particleProps,
-    center,
-    simplex,
-    tick,
-    particlePropsLength,
-    particlePropCount,
-    xOff,
-    yOff,
-    zOff,
-    noiseSteps,
-    rangeY,
-    baseTTL,
-    rangeTTL,
-    baseSpeed,
-    rangeSpeed,
-    baseRadius,
-    rangeRadius,
-    baseHue,
-    rangeHue
-  )
-  renderGlow(canvasARef.current, contextB)
-  renderToScreen(canvasARef.current, contextB)
-
-  window.requestAnimationFrame(() =>
-    draw(
-      canvasARef,
-      canvasBRef,
-      particleProps,
-      center,
-      simplex,
-      tick,
-      backgroundColor,
-      particlePropsLength,
-      particlePropCount,
-      xOff,
-      yOff,
-      zOff,
-      noiseSteps,
-      rangeY,
-      baseTTL,
-      rangeTTL,
-      baseSpeed,
-      rangeSpeed,
-      baseRadius,
-      rangeRadius,
-      baseHue,
-      rangeHue
-    )
-  )
-}
-
 function initParticle(
   canvasA: HTMLCanvasElement,
-  particleProps: Float32Array,
+  particleProps: RefObject<Float32Array>,
   center: number[],
   i: number,
-  rangeY: number,
+  rangeY: RefObject<number>,
   baseTTL: number,
   rangeTTL: number,
   baseSpeed: number,
   rangeSpeed: number,
-  baseRadius: number,
-  rangeRadius: number,
-  baseHue: number,
-  rangeHue: number
+  baseRadius: RefObject<number>,
+  rangeRadius: RefObject<number>,
+  baseHue: RefObject<number>,
+  rangeHue: RefObject<number>
 ) {
+  if (
+    !baseHue.current ||
+    !rangeHue.current ||
+    !baseRadius.current ||
+    !rangeRadius.current
+  ) {
+    return
+  }
   const x = rand(canvasA.width)
-  const y = center[1] + randRange(rangeY)
+  const y = center[1] + randRange(rangeY.current || 0)
   const vx = 0
   const vy = 0
   const life = 0
   const ttl = baseTTL + rand(rangeTTL)
   const speed = baseSpeed + rand(rangeSpeed)
-  const radius = baseRadius + rand(rangeRadius)
-  const hue = baseHue + rand(rangeHue)
+  const radius = baseRadius.current + rand(rangeRadius.current)
+  const hue = baseHue.current + rand(rangeHue.current)
 
-  particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
+  particleProps.current?.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
 }
 
 function drawParticles(
   canvasA: HTMLCanvasElement,
   contextA: CanvasRenderingContext2D,
-  particleProps: Float32Array,
+  particleProps: RefObject<Float32Array>,
   center: number[],
-  simplex: SimplexNoise,
-  tick: number,
+  simplex: RefObject<SimplexNoise>,
+  tick: RefObject<number>,
   particlePropsLength: number,
   particlePropCount: number,
-  xOff: number,
-  yOff: number,
-  zOff: number,
+  xOff: RefObject<number>,
+  yOff: RefObject<number>,
+  zOff: RefObject<number>,
   noiseSteps: number,
-  rangeY: number,
+  rangeY: RefObject<number>,
   baseTTL: number,
   rangeTTL: number,
   baseSpeed: number,
   rangeSpeed: number,
-  baseRadius: number,
-  rangeRadius: number,
-  baseHue: number,
-  rangeHue: number
+  baseRadius: RefObject<number>,
+  rangeRadius: RefObject<number>,
+  baseHue: RefObject<number>,
+  rangeHue: RefObject<number>
 ) {
   let i
+  if (!particleProps.current) return
 
-  for (i = 0; i < particlePropsLength; i += particlePropCount) {
+  for (i = 0; i < particleProps.current?.length; i += particlePropCount) {
     updateParticle(
       canvasA,
       contextA,
@@ -333,25 +425,34 @@ function drawParticles(
 function updateParticle(
   canvasA: HTMLCanvasElement,
   contextA: CanvasRenderingContext2D,
-  particleProps: Float32Array,
+  particleProps: RefObject<Float32Array>,
   center: number[],
-  simplex: SimplexNoise,
-  tick: number,
+  simplex: RefObject<SimplexNoise>,
+  tick: RefObject<number>,
   i: number,
-  xOff: number,
-  yOff: number,
-  zOff: number,
+  xOff: RefObject<number>,
+  yOff: RefObject<number>,
+  zOff: RefObject<number>,
   noiseSteps: number,
-  rangeY: number,
+  rangeY: RefObject<number>,
   baseTTL: number,
   rangeTTL: number,
   baseSpeed: number,
   rangeSpeed: number,
-  baseRadius: number,
-  rangeRadius: number,
-  baseHue: number,
-  rangeHue: number
+  baseRadius: RefObject<number>,
+  rangeRadius: RefObject<number>,
+  baseHue: RefObject<number>,
+  rangeHue: RefObject<number>
 ) {
+  if (
+    !particleProps.current ||
+    !simplex.current ||
+    !xOff.current ||
+    !yOff.current ||
+    !zOff.current ||
+    !tick.current
+  )
+    return
   let i2 = 1 + i,
     i3 = 2 + i,
     i4 = 3 + i,
@@ -360,30 +461,36 @@ function updateParticle(
     i7 = 6 + i,
     i8 = 7 + i,
     i9 = 8 + i
-  let n, x, y, vx, vy, life, ttl, speed, x2, y2, radius, hue
 
-  x = particleProps[i]
-  y = particleProps[i2]
-  n = simplex.noise3D(x * xOff, y * yOff, tick * zOff) * noiseSteps * TAU
-  vx = lerp(particleProps[i3], cos(n), 0.5)
-  vy = lerp(particleProps[i4], sin(n), 0.5)
-  life = particleProps[i5]
-  ttl = particleProps[i6]
-  speed = particleProps[i7]
-  x2 = x + vx * speed
-  y2 = y + vy * speed
-  radius = particleProps[i8]
-  hue = particleProps[i9]
+  const x = particleProps.current[i]
+  const y = particleProps.current[i2]
+  const n =
+    simplex.current.noise3D(
+      x * xOff.current,
+      y * yOff.current,
+      tick.current * zOff.current
+    ) *
+    noiseSteps *
+    TAU
+  const vx = lerp(particleProps.current[i3], cos(n), 0.5)
+  const vy = lerp(particleProps.current[i4], sin(n), 0.5)
+  let life = particleProps.current[i5]
+  const ttl = particleProps.current[i6]
+  const speed = particleProps.current[i7]
+  const x2 = x + vx * speed
+  const y2 = y + vy * speed
+  const radius = particleProps.current[i8]
+  const hue = particleProps.current[i9]
 
   drawParticle(contextA, x, y, x2, y2, life, ttl, radius, hue)
 
   life++
 
-  particleProps[i] = x2
-  particleProps[i2] = y2
-  particleProps[i3] = vx
-  particleProps[i4] = vy
-  particleProps[i5] = life
+  particleProps.current[i] = x2
+  particleProps.current[i2] = y2
+  particleProps.current[i3] = vx
+  particleProps.current[i4] = vy
+  particleProps.current[i5] = life
   ;(checkBounds(canvasA, x, y) || life > ttl) &&
     initParticle(
       canvasA,
